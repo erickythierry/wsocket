@@ -35,7 +35,8 @@
     "prepare": "tsc",
     "preinstall": "node ./engine-requirements.js",
     "release": "release-it",
-    "test": "jest"
+    "test": "jest",
+    "postinstall": "tsc"
   },
   "dependencies": {
     "@cacheable/node-cache": "^1.4.0",
