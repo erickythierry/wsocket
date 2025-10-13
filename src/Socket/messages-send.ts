@@ -452,7 +452,8 @@ const lidCache = new NodeCache({
 			deviceSentMessage: {
 				destinationJid,
 				message
-			}
+			},
+			messageContextInfo: message.messageContextInfo
 		}
 		   
 		const extraAttrs = {}
