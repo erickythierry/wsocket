@@ -131,42 +131,35 @@ type RequestPhoneNumber = {
 }
 
 export type MediaType = keyof typeof MEDIA_HKDF_KEY_MAPPING
-export type AnyMediaMessageContent = (
-	| ({
-			image: WAMediaUpload
-			caption?: string
-			jpegThumbnail?: string
-	  } & Mentionable &
-			Contextable & Buttonable & Templatable &
-			WithDimensions)
-	| ({
-			video: WAMediaUpload
-			caption?: string
-			gifPlayback?: boolean
-			jpegThumbnail?: string
-			/** if set to true, will send as a `video note` */
-			ptv?: boolean
-	  } & Mentionable &
-			Contextable & Buttonable & Templatable &
-			WithDimensions)
-	| {
-			audio: WAMediaUpload
-			/** if set to true, will send as a `voice note` */
-			ptt?: boolean
-			/** optionally tell the duration of the audio */
-			seconds?: number
-	  }
-	| ({
-			sticker: WAMediaUpload
-			isAnimated?: boolean
-	  } & WithDimensions)
-	| ({
-			document: WAMediaUpload
-			mimetype: string
-			fileName?: string
-			caption?: string
-	  } & Contextable)
-) & { mimetype?: string } & Editable
+export type AnyMediaMessageContent = (({
+    image: WAMediaUpload;
+    caption?: string;
+    jpegThumbnail?: string;
+
+} & Mentionable & Contextable & Buttonable & Templatable & WithDimensions) | ({
+    video: WAMediaUpload;
+    caption?: string;
+    gifPlayback?: boolean;
+    jpegThumbnail?: string;
+    /** if set to true, will send as a `video note` */
+    ptv?: boolean;
+} & Mentionable & Contextable & Buttonable & Templatable & WithDimensions) | {
+    audio: WAMediaUpload;
+    /** if set to true, will send as a `voice note` */
+    ptt?: boolean;
+    /** optionally tell the duration of the audio */
+    seconds?: number;
+} | ({
+    sticker: WAMediaUpload;
+    isAnimated?: boolean;
+} & WithDimensions) | ({
+    document: WAMediaUpload;
+    mimetype: string;
+    fileName?: string;
+    caption?: string;
+} & Contextable & Buttonable & Templatable)) & {
+    mimetype?: string;
+} & Editable;
 
 export type ButtonReplyInfo = {
 	displayText: string

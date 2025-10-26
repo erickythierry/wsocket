@@ -559,6 +559,16 @@ export const generateWAMessageContent = async (
 		if ('footer' in message && !!message.footer) {
 			buttonsMessage.footerText = message.footer;
 		}
+		if ('title' in message && !!message.title) {
+        buttonsMessage.text = message.title,
+        buttonsMessage.headerType = ButtonType.TEXT;
+    }
+		if ('contextInfo' in message && !!message.contextInfo) {
+				buttonsMessage.contextInfo = message.contextInfo;
+		}
+		if ('mentions' in message && !!message.mentions) {
+				buttonsMessage.contextInfo = { mentionedJid: message.mentions };
+		}
 
 		m = { buttonsMessage };
 	} else if ('templateButtons' in message && !!message.templateButtons) {

@@ -137,7 +137,7 @@ export type AnyMediaMessageContent = (({
     mimetype: string;
     fileName?: string;
     caption?: string;
-} & Contextable)) & {
+} & Contextable & Buttonable & Templatable)) & {
     mimetype?: string;
 } & Editable;
 export type ButtonReplyInfo = {
