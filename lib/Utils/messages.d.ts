@@ -38,7 +38,7 @@ export declare const extractMessageContent: (content: WAMessageContent | undefin
 /**
  * Returns the device predicted by message ID
  */
-export declare const getDevice: (id: string) => "web" | "unknown" | "android" | "ios" | "desktop";
+export declare const getDevice: (id: string) => "ios" | "web" | "android" | "desktop" | "unknown";
 /** Upserts a receipt in the message */
 export declare const updateMessageWithReceipt: (msg: Pick<WAMessage, "userReceipt">, receipt: MessageUserReceipt) => void;
 /** Update the message with a new reaction */
@@ -71,6 +71,6 @@ type DownloadMediaMessageContext = {
  */
 export declare const downloadMediaMessage: <Type extends "buffer" | "stream">(message: WAMessage, type: Type, options: MediaDownloadOptions, ctx?: DownloadMediaMessageContext) => Promise<Type extends "buffer" ? Buffer<ArrayBufferLike> : Transform>;
 /** Checks whether the given message is a media message; if it is returns the inner content */
-export declare const assertMediaContent: (content: proto.IMessage | null | undefined) => proto.Message.IVideoMessage | proto.Message.IImageMessage | proto.Message.IAudioMessage | proto.Message.IDocumentMessage | proto.Message.IStickerMessage;
+export declare const assertMediaContent: (content: proto.IMessage | null | undefined) => proto.Message.IImageMessage | proto.Message.IDocumentMessage | proto.Message.IAudioMessage | proto.Message.IVideoMessage | proto.Message.IStickerMessage;
 export declare const convertlidDevice: (jid: string, lid: string | null | undefined, meid: string | undefined, melid: string | undefined) => string;
 export {};
