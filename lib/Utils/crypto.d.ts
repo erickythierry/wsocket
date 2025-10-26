@@ -1,6 +1,6 @@
 import { KeyPair } from '../Types';
 /** prefix version byte to the pub keys, required for some curve crypto functions */
-export declare const generateSignalPubKey: (pubKey: Uint8Array | Buffer) => Buffer<ArrayBufferLike> | Uint8Array<ArrayBufferLike>;
+export declare const generateSignalPubKey: (pubKey: Uint8Array | Buffer) => Uint8Array<ArrayBufferLike> | Buffer<ArrayBufferLike>;
 export declare const Curve: {
     generateKeyPair: () => KeyPair;
     sharedKey: (privateKey: Uint8Array, publicKey: Uint8Array) => Buffer<any>;
