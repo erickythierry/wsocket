@@ -580,6 +580,31 @@ await sock.sendMessage(
 )
 ```
 
+#### Buttons Message
+```ts
+await sock.sendMessage(jid, {
+    text: "Buttons Test",
+    footer: "Baileys - 2025",
+    buttons: [
+        {
+            buttonId: `1`,
+            buttonText: {
+                displayText: "🗿",
+            },
+            type: 1,
+        },
+        {
+            buttonId: `2`,
+            buttonText: {
+                displayText: "🚀",
+            },
+            type: 1,
+        },
+    ],
+    viewOnce: true,
+})
+```
+
 ### Sending Messages with Link Previews
 
 1. By default, wa does not have link generation when sent from the web
