@@ -83,6 +83,18 @@ type ViewOnce = {
 	viewOnce?: boolean
 }
 
+type Buttonable = {
+    /** add buttons to the message  */
+    buttons?: proto.Message.ButtonsMessage.IButton[]
+}
+
+type Templatable = {
+    /** add buttons to the message (conflicts with normal buttons)*/
+    templateButtons?: proto.IHydratedTemplateButton[]
+
+    footer?: string
+}
+
 type Editable = {
 	edit?: WAMessageKey
 }
@@ -91,6 +103,16 @@ type WithDimensions = {
 	height?: number
 }
 
+type Listable = {
+    /** Sections of the List */
+    sections?: proto.Message.ListMessage.ISection[]
+
+    /** Title of a List Message only */
+    title?: string
+
+    /** Text of the bnutton on the list (required) */
+    buttonText?: string
+}
 export type PollMessageOptions = {
 	name: string
 	selectableCount?: number
@@ -109,42 +131,35 @@ type RequestPhoneNumber = {
 }
 
 export type MediaType = keyof typeof MEDIA_HKDF_KEY_MAPPING
-export type AnyMediaMessageContent = (
-	| ({
-			image: WAMediaUpload
-			caption?: string
-			jpegThumbnail?: string
-	  } & Mentionable &
-			Contextable &
-			WithDimensions)
-	| ({
-			video: WAMediaUpload
-			caption?: string
-			gifPlayback?: boolean
-			jpegThumbnail?: string
-			/** if set to true, will send as a `video note` */
-			ptv?: boolean
-	  } & Mentionable &
-			Contextable &
-			WithDimensions)
-	| {
-			audio: WAMediaUpload
-			/** if set to true, will send as a `voice note` */
-			ptt?: boolean
-			/** optionally tell the duration of the audio */
-			seconds?: number
-	  }
-	| ({
-			sticker: WAMediaUpload
-			isAnimated?: boolean
-	  } & WithDimensions)
-	| ({
-			document: WAMediaUpload
-			mimetype: string
-			fileName?: string
-			caption?: string
-	  } & Contextable)
-) & { mimetype?: string } & Editable
+export type AnyMediaMessageContent = (({
+    image: WAMediaUpload;
+    caption?: string;
+    jpegThumbnail?: string;
+
+} & Mentionable & Contextable & Buttonable & Templatable & WithDimensions) | ({
+    video: WAMediaUpload;
+    caption?: string;
+    gifPlayback?: boolean;
+    jpegThumbnail?: string;
+    /** if set to true, will send as a `video note` */
+    ptv?: boolean;
+} & Mentionable & Contextable & Buttonable & Templatable & WithDimensions) | {
+    audio: WAMediaUpload;
+    /** if set to true, will send as a `voice note` */
+    ptt?: boolean;
+    /** optionally tell the duration of the audio */
+    seconds?: number;
+} | ({
+    sticker: WAMediaUpload;
+    isAnimated?: boolean;
+} & WithDimensions) | ({
+    document: WAMediaUpload;
+    mimetype: string;
+    fileName?: string;
+    caption?: string;
+} & Contextable & Buttonable & Templatable)) & {
+    mimetype?: string;
+} & Editable;
 
 export type ButtonReplyInfo = {
 	displayText: string
@@ -169,12 +184,12 @@ export type AnyRegularMessageContent = (
 			text: string
 			linkPreview?: WAUrlInfo | null
 	  } & Mentionable &
-			Contextable &
+			Contextable & Buttonable & Templatable & Listable &
 			Editable)
 	| AnyMediaMessageContent
 	| ({
 			poll: PollMessageOptions
-	  } & Mentionable &
+	  } & Mentionable & Buttonable & Templatable &
 			Contextable &
 			Editable)
 	| {
