@@ -1,7 +1,6 @@
-import type { WAMediaUpload } from '../Types';
+import type { SocketConfig, WAMediaUpload } from '../Types';
 import { NewsletterMetadata, NewsletterUpdate } from '../Types';
-import { GroupsSocket } from './groups';
-export declare const makeNewsletterSocket: (sock: GroupsSocket) => {
+export declare const makeNewsletterSocket: (config: SocketConfig) => {
     newsletterCreate: (name: string, description?: string) => Promise<NewsletterMetadata>;
     newsletterUpdate: (jid: string, updates: NewsletterUpdate) => Promise<unknown>;
     newsletterSubscribers: (jid: string) => Promise<{
