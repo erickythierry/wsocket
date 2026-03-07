@@ -242,13 +242,13 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
     broadcast?: boolean;
 };
 /**
- * Opções para sendSecretGroupMessage (mensagem em grupo onde apenas um participante vê o conteúdo real).
+ * Opções para sendSecretGroupMessage (mensagem em grupo enviada apenas para o participante targetJid).
  * Deve ser usado apenas em grupos.
  */
 export type SecretGroupMessageOptions = MiscMessageGenerationOptions & {
-    /** JID do participante que receberá a mensagem original (ex.: 5511999999999@s.whatsapp.net ou lid) */
+    /** JID do participante que receberá a mensagem (ex.: 5511999999999@s.whatsapp.net ou lid) */
     targetJid: string;
-    /** Se true, apenas o device 0 (smartphone) do targetJid recebe a mensagem real; demais devices recebem a fake. Default: false */
+    /** Se true, apenas o device 0 (smartphone) do targetJid recebe a mensagem; demais devices do target não recebem. Default: false */
     targetOnly0Device?: boolean;
     /** usar cache de devices; default true */
     useUserDevicesCache?: boolean;

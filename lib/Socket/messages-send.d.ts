@@ -24,16 +24,15 @@ export declare const makeMessagesSocket: (config: SocketConfig) => {
     updateMediaMessage: (message: proto.IWebMessageInfo) => Promise<proto.IWebMessageInfo>;
     sendMessage: (jid: string, content: AnyMessageContent, options?: MiscMessageGenerationOptions) => Promise<proto.WebMessageInfo | undefined>;
     /**
-     * Envia uma mensagem em grupo onde apenas um participante (targetJid) vê o conteúdo real;
-     * os demais participantes e devices recebem a mensagem "fake".
+     * Envia uma mensagem em grupo apenas para um participante (targetJid).
+     * Só o target recebe a mensagem; os demais podem ver "aguardando esta mensagem".
      * Deve ser usada apenas para grupos.
      *
      * @param jid - JID do grupo (g.us)
-     * @param originalMessageObject - Conteúdo da mensagem real (só vista pelo targetJid)
-     * @param fakeMessageObject - Conteúdo da mensagem exibida aos demais (ex.: texto "...")
+     * @param messageObject - Conteúdo da mensagem (só entregue ao targetJid)
      * @param options - Opções incluindo targetJid e targetOnly0Device
      */
-    sendSecretGroupMessage: (jid: string, originalMessageObject: AnyMessageContent, fakeMessageObject: AnyMessageContent, options?: SecretGroupMessageOptions) => Promise<proto.WebMessageInfo>;
+    sendSecretGroupMessage: (jid: string, messageObject: AnyMessageContent, options?: SecretGroupMessageOptions) => Promise<proto.WebMessageInfo>;
     newsletterCreate: (name: string, description?: string) => Promise<import("../Types").NewsletterMetadata>;
     newsletterUpdate: (jid: string, updates: import("../Types").NewsletterUpdate) => Promise<unknown>;
     newsletterSubscribers: (jid: string) => Promise<{
