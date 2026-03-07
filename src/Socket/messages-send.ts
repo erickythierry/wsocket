@@ -9,6 +9,7 @@ import {
 	MessageReceiptType,
 	MessageRelayOptions,
 	MiscMessageGenerationOptions,
+	SecretGroupMessageOptions,
 	SocketConfig,
 	WAMessageKey
 } from '../Types'
@@ -1026,6 +1027,119 @@ const lidCache = new NodeCache({
 
 				return fullMsg
 			}
+		},
+		/**
+		 * Envia uma mensagem em grupo onde apenas um participante (targetJid) vê o conteúdo real;
+		 * os demais participantes e devices recebem a mensagem "fake".
+		 * Deve ser usada apenas para grupos.
+		 *
+		 * @param jid - JID do grupo (g.us)
+		 * @param originalMessageObject - Conteúdo da mensagem real (só vista pelo targetJid)
+		 * @param fakeMessageObject - Conteúdo da mensagem exibida aos demais (ex.: texto "...")
+		 * @param options - Opções incluindo targetJid e targetOnly0Device
+		 */
+		sendSecretGroupMessage: async (
+			jid: string,
+			originalMessageObject: AnyMessageContent,
+			fakeMessageObject: AnyMessageContent,
+			options: SecretGroupMessageOptions = {} as SecretGroupMessageOptions
+		) => {
+			if (!isJidGroup(jid)) {
+				throw new Boom('sendSecretGroupMessage deve ser usada apenas para grupos (g.us)', { statusCode: 400 })
+			}
+			const targetJid = options.targetJid
+			if (!targetJid) {
+				throw new Boom('options.targetJid é obrigatório em sendSecretGroupMessage', { statusCode: 400 })
+			}
+
+			const { targetJid: _targetJid, targetOnly0Device: _targetOnly0Device, ...messageGenOptions } = options
+			const targetOnly0Device = options.targetOnly0Device === true
+			const userJid = authState.creds.me!.id
+			const meLid = authState.creds.me!.lid || authState.creds.me!.id
+			const jlidUser = jidDecode(authState.creds.me?.lid)?.user
+			const useUserDevicesCache = options.useUserDevicesCache !== false
+			const useCachedGroupMetadata = options.useCachedGroupMetadata !== false
+			const additionalAttributes: BinaryNodeAttributes = options.additionalAttributes || {}
+			const additionalNodes: BinaryNode[] = options.additionalNodes || []
+
+			const groupData = useCachedGroupMetadata && cachedGroupMetadata
+				? await cachedGroupMetadata(jid)
+				: undefined
+			const resolvedGroupData = (groupData && Array.isArray(groupData?.participants))
+				? groupData
+				: await groupMetadata(jid)
+
+			const participantsList = resolvedGroupData.participants
+				.map((p: { lid?: string; id?: string }) => p.lid || p.id)
+				.filter((jid): jid is string => !!jid)
+			const additionalDevices = await getUSyncDevices(participantsList, useUserDevicesCache, false)
+			const devices: JidWithDevice[] = [...additionalDevices]
+			const mePhone = additionalDevices.some((d: JidWithDevice) => d.user === jlidUser && (d.device ?? 0) === 0)
+			if (!mePhone) {
+				devices.push({ user: jlidUser!, device: 0, jid: jidNormalizedUser(meLid) })
+			}
+
+			const messageId = options.messageId || generateMessageIDV2(sock.user?.id)
+
+			const fullOriginalMsg = await generateWAMessage(jid, originalMessageObject, {
+				logger,
+				userJid,
+				getUrlInfo: (text: string) =>
+					getUrlInfo(text, {
+						thumbnailWidth: linkPreviewImageThumbnailWidth,
+						fetchOpts: { timeout: 3_000, ...(axiosOptions || {}) },
+						logger,
+						uploadImage: generateHighQualityLinkPreview ? waUploadToServer : undefined
+					}),
+				getProfilePicUrl: sock.profilePictureUrl,
+				upload: waUploadToServer,
+				mediaCache: config.mediaCache,
+				options: config.options,
+				messageId,
+				...messageGenOptions
+			})
+
+			const fullFakeMsg = await generateWAMessage(jid, fakeMessageObject, {
+				logger,
+				userJid,
+				getUrlInfo: (text: string) =>
+					getUrlInfo(text, {
+						thumbnailWidth: linkPreviewImageThumbnailWidth,
+						fetchOpts: { timeout: 3_000, ...(axiosOptions || {}) },
+						logger,
+						uploadImage: undefined
+					}),
+				getProfilePicUrl: sock.profilePictureUrl,
+				upload: waUploadToServer,
+				mediaCache: config.mediaCache,
+				options: config.options,
+				messageId: generateMessageIDV2(sock.user?.id),
+				...messageGenOptions
+			})
+
+			for (const d of devices) {
+				const server = jidDecode(d.jid)?.server || 'lid'
+				const deviceNum = d.device ?? 0
+				const fullDeviceJid = jidEncode(d.user, server as 'lid' | 's.whatsapp.net', deviceNum)
+				const isTarget = areJidsSameUser(d.jid!, targetJid) && (!targetOnly0Device || deviceNum === 0)
+				const msgToSend = isTarget ? fullOriginalMsg.message! : fullFakeMsg.message!
+
+				await relayMessage(jid, msgToSend, {
+					messageId,
+					participant: { jid: fullDeviceJid, count: 0 },
+					useCachedGroupMetadata: true,
+					useUserDevicesCache: true,
+					additionalAttributes,
+					additionalNodes
+				})
+			}
+
+			if (config.emitOwnEvents) {
+				process.nextTick(() => {
+					processingMutex.mutex(() => upsertMessage(fullOriginalMsg, 'append'))
+				})
+			}
+			return fullOriginalMsg
 		}
 	}
 }
