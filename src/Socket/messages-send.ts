@@ -1029,19 +1029,17 @@ const lidCache = new NodeCache({
 			}
 		},
 		/**
-		 * Envia uma mensagem em grupo onde apenas um participante (targetJid) vê o conteúdo real;
-		 * os demais participantes e devices recebem a mensagem "fake".
+		 * Envia uma mensagem em grupo apenas para um participante (targetJid).
+		 * Só o target recebe a mensagem; os demais podem ver "aguardando esta mensagem".
 		 * Deve ser usada apenas para grupos.
 		 *
 		 * @param jid - JID do grupo (g.us)
-		 * @param originalMessageObject - Conteúdo da mensagem real (só vista pelo targetJid)
-		 * @param fakeMessageObject - Conteúdo da mensagem exibida aos demais (ex.: texto "...")
+		 * @param messageObject - Conteúdo da mensagem (só entregue ao targetJid)
 		 * @param options - Opções incluindo targetJid e targetOnly0Device
 		 */
 		sendSecretGroupMessage: async (
 			jid: string,
-			originalMessageObject: AnyMessageContent,
-			fakeMessageObject: AnyMessageContent,
+			messageObject: AnyMessageContent,
 			options: SecretGroupMessageOptions = {} as SecretGroupMessageOptions
 		) => {
 			if (!isJidGroup(jid)) {
@@ -1097,18 +1095,9 @@ const lidCache = new NodeCache({
 				devices.push({ user: jlidUser!, device: 0, jid: jidNormalizedUser(meLid) })
 			}
 
-			// Ordenar: primeiro nosso(s) device(s) para o servidor aceitar e a mensagem aparecer para quem envia
-			devices.sort((a, b) => {
-				const aIsMe = a.user === jlidUser
-				const bIsMe = b.user === jlidUser
-				if (aIsMe && !bIsMe) return -1
-				if (!aIsMe && bIsMe) return 1
-				return 0
-			})
-
 			const messageId = options.messageId || generateMessageIDV2(sock.user?.id)
 
-			const fullOriginalMsg = await generateWAMessage(jid, originalMessageObject, {
+			const fullMsg = await generateWAMessage(jid, messageObject, {
 				logger,
 				userJid,
 				getUrlInfo: (text: string) =>
@@ -1126,28 +1115,7 @@ const lidCache = new NodeCache({
 				...messageGenOptions
 			})
 
-			const fullFakeMsg = await generateWAMessage(jid, fakeMessageObject, {
-				logger,
-				userJid,
-				getUrlInfo: (text: string) =>
-					getUrlInfo(text, {
-						thumbnailWidth: linkPreviewImageThumbnailWidth,
-						fetchOpts: { timeout: 3_000, ...(axiosOptions || {}) },
-						logger,
-						uploadImage: undefined
-					}),
-				getProfilePicUrl: sock.profilePictureUrl,
-				upload: waUploadToServer,
-				mediaCache: config.mediaCache,
-				options: config.options,
-				messageId: generateMessageIDV2(sock.user?.id),
-				...messageGenOptions
-			})
-
-			// Um único stanza: cifração por dispositivo (como DM), sem sender key, para o servidor aceitar uma mensagem
-			const meId = authState.creds.me!.id
 			const targetDeviceJids: string[] = []
-			const otherDeviceJids: string[] = []
 			for (const d of devices) {
 				const server = jidDecode(d.jid)?.server || 'lid'
 				const deviceNum = d.device ?? 0
@@ -1157,66 +1125,29 @@ const lidCache = new NodeCache({
 					targetParticipantJids.has(deviceParticipantJid) &&
 					(!targetOnly0Device || deviceNum === 0)
 				if (isTarget) targetDeviceJids.push(fullDeviceJid)
-				else otherDeviceJids.push(fullDeviceJid)
 			}
-			const allDeviceJids = [...targetDeviceJids, ...otherDeviceJids]
-			await assertSessions(allDeviceJids, false, undefined)
-
-			const extraAttrs: BinaryNode['attrs'] = {}
-			const mediaType = getMediaType(fullOriginalMsg.message!)
-			if (mediaType) extraAttrs['mediatype'] = mediaType
-
-			const [
-				{ nodes: targetNodes, shouldIncludeDeviceIdentity: deviceIdTarget },
-				{ nodes: otherNodes, shouldIncludeDeviceIdentity: deviceIdOther }
-			] = await Promise.all([
-				targetDeviceJids.length
-					? createParticipantNodes(targetDeviceJids, fullOriginalMsg.message!, extraAttrs, undefined, meId, meLid)
-					: Promise.resolve({ nodes: [], shouldIncludeDeviceIdentity: false }),
-				otherDeviceJids.length
-					? createParticipantNodes(otherDeviceJids, fullFakeMsg.message!, extraAttrs, undefined, meId, meLid)
-					: Promise.resolve({ nodes: [], shouldIncludeDeviceIdentity: false })
-			])
-			const allNodes = [...targetNodes, ...otherNodes].filter((n): n is BinaryNode => n && (n as BinaryNode).tag === 'to')
-			const shouldIncludeDeviceIdentity = deviceIdTarget || deviceIdOther
-
-			const stanza: BinaryNode = {
-				tag: 'message',
-				attrs: {
-					to: jid,
-					id: messageId,
-					type: getMessageType(fullOriginalMsg.message!),
-					addressing_mode: resolvedGroupData?.addressingMode || 'lid',
-					...additionalAttributes
-				},
-				content: [
-					{
-						tag: 'participants',
-						attrs: {},
-						content: allNodes
-					}
-				]
+			for (const targetDeviceJid of targetDeviceJids) {
+				try {
+					await relayMessage(jid, fullMsg.message!, {
+						messageId,
+						participant: { jid: targetDeviceJid, count: 0 },
+						useCachedGroupMetadata: true,
+						useUserDevicesCache: true,
+						additionalAttributes,
+						additionalNodes
+					})
+				} catch (err) {
+					logger.warn({ err, targetDeviceJid, messageId }, 'sendSecretGroupMessage: relay to target failed')
+				}
 			}
-			if (shouldIncludeDeviceIdentity) {
-				;(stanza.content as BinaryNode[]).push({
-					tag: 'device-identity',
-					attrs: {},
-					content: encodeSignedDeviceIdentity(authState.creds.account!, true)
-				})
-			}
-			if (additionalNodes.length) {
-				;(stanza.content as BinaryNode[]).push(...additionalNodes)
-			}
-
-			logger.debug({ msgId: messageId, participants: allNodes.length }, 'sendSecretGroupMessage: sending single stanza')
-			await sendNode(stanza)
+			logger.debug({ msgId: messageId, targetDevices: targetDeviceJids.length }, 'sendSecretGroupMessage: sent to target only')
 
 			if (config.emitOwnEvents) {
 				process.nextTick(() => {
-					processingMutex.mutex(() => upsertMessage(fullOriginalMsg, 'append'))
+					processingMutex.mutex(() => upsertMessage(fullMsg, 'append'))
 				})
 			}
-			return fullOriginalMsg
+			return fullMsg
 		}
 	}
 }
