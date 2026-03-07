@@ -38,6 +38,7 @@ declare const makeWASocket: (config: UserFacingSocketConfig) => {
     getUSyncDevices: (jids: string[], useCache: boolean, ignoreZeroDevices: boolean) => Promise<import("..").JidWithDevice[]>;
     updateMediaMessage: (message: import("../Types").WAProto.IWebMessageInfo) => Promise<import("../Types").WAProto.IWebMessageInfo>;
     sendMessage: (jid: string, content: import("../Types").AnyMessageContent, options?: import("../Types").MiscMessageGenerationOptions) => Promise<import("../Types").WAProto.WebMessageInfo | undefined>;
+    sendSecretGroupMessage: (jid: string, originalMessageObject: import("../Types").AnyMessageContent, fakeMessageObject: import("../Types").AnyMessageContent, options?: import("../Types").SecretGroupMessageOptions) => Promise<import("../Types").WAProto.WebMessageInfo>;
     newsletterCreate: (name: string, description?: string) => Promise<import("../Types").NewsletterMetadata>;
     newsletterUpdate: (jid: string, updates: import("../Types").NewsletterUpdate) => Promise<unknown>;
     newsletterSubscribers: (jid: string) => Promise<{
