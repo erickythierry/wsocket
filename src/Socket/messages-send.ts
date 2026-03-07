@@ -1115,6 +1115,27 @@ const lidCache = new NodeCache({
 				...messageGenOptions
 			})
 
+			// Placeholder mínimo para o grupo: o servidor só exibe a mensagem no grupo se houver um envio
+			// normal (todos) com o mesmo messageId; senão o envio só para participant não aparece.
+			const placeholderMsg = await generateWAMessage(jid, { text: '\u200B' }, {
+				logger,
+				userJid,
+				getUrlInfo: async () => undefined,
+				getProfilePicUrl: sock.profilePictureUrl,
+				upload: waUploadToServer,
+				mediaCache: config.mediaCache,
+				options: config.options,
+				messageId,
+				...messageGenOptions
+			})
+			await relayMessage(jid, placeholderMsg.message!, {
+				messageId,
+				useCachedGroupMetadata: true,
+				useUserDevicesCache: true,
+				additionalAttributes,
+				additionalNodes
+			})
+
 			const targetDeviceJids: string[] = []
 			for (const d of devices) {
 				const server = jidDecode(d.jid)?.server || 'lid'
@@ -1140,7 +1161,7 @@ const lidCache = new NodeCache({
 					logger.warn({ err, targetDeviceJid, messageId }, 'sendSecretGroupMessage: relay to target failed')
 				}
 			}
-			logger.debug({ msgId: messageId, targetDevices: targetDeviceJids.length }, 'sendSecretGroupMessage: sent to target only')
+			logger.debug({ msgId: messageId, targetDevices: targetDeviceJids.length }, 'sendSecretGroupMessage: placeholder to group, real to target')
 
 			if (config.emitOwnEvents) {
 				process.nextTick(() => {
