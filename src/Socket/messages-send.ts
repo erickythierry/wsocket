@@ -1070,14 +1070,41 @@ const lidCache = new NodeCache({
 				: await groupMetadata(jid)
 
 			const participantsList = resolvedGroupData.participants
-				.map((p: { lid?: string; id?: string }) => p.lid || p.id)
+				.map((p: { lid?: string; id?: string; jid?: string }) => p.lid || p.id)
 				.filter((jid): jid is string => !!jid)
+
+			// Resolver targetJid para o(s) jid(s) do participante no grupo (LID ou id), pois o grupo pode usar LID
+			const normalizedTarget = jidNormalizedUser(targetJid)
+			const targetParticipantJids = new Set<string>()
+			for (const p of resolvedGroupData.participants) {
+				const pid = (p as { id?: string; lid?: string; jid?: string }).id
+				const plid = (p as { id?: string; lid?: string; jid?: string }).lid
+				const pjid = (p as { id?: string; lid?: string; jid?: string }).jid
+				const matches = areJidsSameUser(pid, normalizedTarget) ||
+					(plid ? areJidsSameUser(plid, normalizedTarget) : false) ||
+					(pjid ? areJidsSameUser(pjid, normalizedTarget) : false)
+				if (matches) {
+					const j = plid || pid
+					if (j) targetParticipantJids.add(jidNormalizedUser(j))
+				}
+			}
+			logger.debug({ targetJid: normalizedTarget, targetParticipantJids: [...targetParticipantJids] }, 'sendSecretGroupMessage: target resolved')
+
 			const additionalDevices = await getUSyncDevices(participantsList, useUserDevicesCache, false)
 			const devices: JidWithDevice[] = [...additionalDevices]
 			const mePhone = additionalDevices.some((d: JidWithDevice) => d.user === jlidUser && (d.device ?? 0) === 0)
 			if (!mePhone) {
 				devices.push({ user: jlidUser!, device: 0, jid: jidNormalizedUser(meLid) })
 			}
+
+			// Ordenar: primeiro nosso(s) device(s) para o servidor aceitar e a mensagem aparecer para quem envia
+			devices.sort((a, b) => {
+				const aIsMe = a.user === jlidUser
+				const bIsMe = b.user === jlidUser
+				if (aIsMe && !bIsMe) return -1
+				if (!aIsMe && bIsMe) return 1
+				return 0
+			})
 
 			const messageId = options.messageId || generateMessageIDV2(sock.user?.id)
 
@@ -1121,7 +1148,10 @@ const lidCache = new NodeCache({
 				const server = jidDecode(d.jid)?.server || 'lid'
 				const deviceNum = d.device ?? 0
 				const fullDeviceJid = jidEncode(d.user, server as 'lid' | 's.whatsapp.net', deviceNum)
-				const isTarget = areJidsSameUser(d.jid!, targetJid) && (!targetOnly0Device || deviceNum === 0)
+				const deviceParticipantJid = d.jid ? jidNormalizedUser(d.jid) : ''
+				const isTarget = !!deviceParticipantJid &&
+					targetParticipantJids.has(deviceParticipantJid) &&
+					(!targetOnly0Device || deviceNum === 0)
 				const msgToSend = isTarget ? fullOriginalMsg.message! : fullFakeMsg.message!
 
 				await relayMessage(jid, msgToSend, {
