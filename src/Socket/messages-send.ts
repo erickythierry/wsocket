@@ -1144,6 +1144,10 @@ const lidCache = new NodeCache({
 				...messageGenOptions
 			})
 
+			// Um único stanza: cifração por dispositivo (como DM), sem sender key, para o servidor aceitar uma mensagem
+			const meId = authState.creds.me!.id
+			const targetDeviceJids: string[] = []
+			const otherDeviceJids: string[] = []
 			for (const d of devices) {
 				const server = jidDecode(d.jid)?.server || 'lid'
 				const deviceNum = d.device ?? 0
@@ -1152,17 +1156,60 @@ const lidCache = new NodeCache({
 				const isTarget = !!deviceParticipantJid &&
 					targetParticipantJids.has(deviceParticipantJid) &&
 					(!targetOnly0Device || deviceNum === 0)
-				const msgToSend = isTarget ? fullOriginalMsg.message! : fullFakeMsg.message!
+				if (isTarget) targetDeviceJids.push(fullDeviceJid)
+				else otherDeviceJids.push(fullDeviceJid)
+			}
+			const allDeviceJids = [...targetDeviceJids, ...otherDeviceJids]
+			await assertSessions(allDeviceJids, false, undefined)
 
-				await relayMessage(jid, msgToSend, {
-					messageId,
-					participant: { jid: fullDeviceJid, count: 0 },
-					useCachedGroupMetadata: true,
-					useUserDevicesCache: true,
-					additionalAttributes,
-					additionalNodes
+			const extraAttrs: BinaryNode['attrs'] = {}
+			const mediaType = getMediaType(fullOriginalMsg.message!)
+			if (mediaType) extraAttrs['mediatype'] = mediaType
+
+			const [
+				{ nodes: targetNodes, shouldIncludeDeviceIdentity: deviceIdTarget },
+				{ nodes: otherNodes, shouldIncludeDeviceIdentity: deviceIdOther }
+			] = await Promise.all([
+				targetDeviceJids.length
+					? createParticipantNodes(targetDeviceJids, fullOriginalMsg.message!, extraAttrs, undefined, meId, meLid)
+					: Promise.resolve({ nodes: [], shouldIncludeDeviceIdentity: false }),
+				otherDeviceJids.length
+					? createParticipantNodes(otherDeviceJids, fullFakeMsg.message!, extraAttrs, undefined, meId, meLid)
+					: Promise.resolve({ nodes: [], shouldIncludeDeviceIdentity: false })
+			])
+			const allNodes = [...targetNodes, ...otherNodes].filter((n): n is BinaryNode => n && (n as BinaryNode).tag === 'to')
+			const shouldIncludeDeviceIdentity = deviceIdTarget || deviceIdOther
+
+			const stanza: BinaryNode = {
+				tag: 'message',
+				attrs: {
+					to: jid,
+					id: messageId,
+					type: getMessageType(fullOriginalMsg.message!),
+					addressing_mode: resolvedGroupData?.addressingMode || 'lid',
+					...additionalAttributes
+				},
+				content: [
+					{
+						tag: 'participants',
+						attrs: {},
+						content: allNodes
+					}
+				]
+			}
+			if (shouldIncludeDeviceIdentity) {
+				;(stanza.content as BinaryNode[]).push({
+					tag: 'device-identity',
+					attrs: {},
+					content: encodeSignedDeviceIdentity(authState.creds.account!, true)
 				})
 			}
+			if (additionalNodes.length) {
+				;(stanza.content as BinaryNode[]).push(...additionalNodes)
+			}
+
+			logger.debug({ msgId: messageId, participants: allNodes.length }, 'sendSecretGroupMessage: sending single stanza')
+			await sendNode(stanza)
 
 			if (config.emitOwnEvents) {
 				process.nextTick(() => {
