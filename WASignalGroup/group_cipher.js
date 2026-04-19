@@ -45,7 +45,7 @@ class GroupCipher {
   async decrypt(senderKeyMessageBytes) {
     return await this.queueJob(async () => {
       const record = await this.senderKeyStore.loadSenderKey(this.senderKeyName);
-      if (!record) {
+      if (!record || record.isEmpty()) {
         throw new Error("No SenderKeyRecord found for decryption")
       }
       const senderKeyMessage = new SenderKeyMessage(null, null, null, null, senderKeyMessageBytes);

@@ -436,10 +436,17 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 				break
 			case 'server_sync':
-				const update = getBinaryNodeChild(node, 'collection')
-				if (update) {
-					const name = update.attrs.name as WAPatchName
-					await resyncAppState([name], false)
+				const updates = getBinaryNodeChildren(node, 'collection')
+				if (updates.length > 0) {
+					const collectionNames = updates.map(item => item.attrs.name as WAPatchName)
+					try {
+						await resyncAppState(collectionNames, false)
+					} catch (error: any) {
+						logger.info(
+							{ error: error?.message, collections: collectionNames },
+							'failed to server_sync state'
+						)
+					}
 				}
 
 				break
@@ -1071,6 +1078,9 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		])
 		const nodes: OfflineNode[] = []
 		let isProcessing = false
+		const BATCH_SIZE = 10
+
+		const yieldToEventLoop = () => new Promise<void>(resolve => setImmediate(resolve))
 
 		const enqueue = (type: MessageType, node: BinaryNode) => {
 			nodes.push({ type, node })
@@ -1082,6 +1092,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			isProcessing = true
 
 			const promise = async () => {
+				let processedInBatch = 0
 				while (nodes.length && ws.isOpen) {
 					const { type, node } = nodes.shift()!
 
@@ -1092,7 +1103,15 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 						continue
 					}
 
-					await nodeProcessor(node)
+					// isolate per-node failures so one bad stanza doesn't stop the queue
+					await nodeProcessor(node).catch(err => onUnexpectedError(err, `processing offline ${type}`))
+
+					processedInBatch++
+					if (processedInBatch >= BATCH_SIZE) {
+						processedInBatch = 0
+						// yield so pings/timers/other I/O can run between batches
+						await yieldToEventLoop()
+					}
 				}
 
 				isProcessing = false

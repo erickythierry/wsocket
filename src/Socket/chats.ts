@@ -465,6 +465,20 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			const initialVersionMap: { [T in WAPatchName]?: number } = {}
 			const globalMutationMap: ChatMutationMap = {}
 
+			// cache app-state-sync-keys for the duration of this resync only,
+			// to avoid repeated store lookups for the same keyId during large snapshots/patches
+			const appStateSyncKeyCache = new Map<string, proto.Message.IAppStateSyncKeyData | null>()
+			const getCachedAppStateSyncKey = async (keyId: string) => {
+				const cached = appStateSyncKeyCache.get(keyId)
+				if (cached) {
+					return cached
+				}
+
+				const key = await getAppStateSyncKey(keyId)
+				appStateSyncKeyCache.set(keyId, key ?? null)
+				return key
+			}
+
 			await authState.keys.transaction(async () => {
 				const collectionsToHandle = new Set<string>(collections)
 				// in case something goes wrong -- ensure we don't enter a loop that cannot be exited from
@@ -529,7 +543,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 								const { state: newState, mutationMap } = await decodeSyncdSnapshot(
 									name,
 									snapshot,
-									getAppStateSyncKey,
+									getCachedAppStateSyncKey,
 									initialVersionMap[name],
 									appStateMacVerification.snapshot
 								)
@@ -547,7 +561,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 									name,
 									patches,
 									states[name],
-									getAppStateSyncKey,
+									getCachedAppStateSyncKey,
 									config.options,
 									initialVersionMap[name],
 									logger,

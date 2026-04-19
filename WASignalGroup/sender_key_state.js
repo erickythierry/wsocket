@@ -85,20 +85,18 @@ class SenderKeyState {
     }
 
     hasSenderMessageKey(iteration) {
-        const list = this.senderKeyStateStructure.senderMessageKeys;
-        for (let o = 0; o < list.length; o++) {
-            const senderMessageKey = list[o];
-            if (senderMessageKey.iteration === iteration) return true;
-        }
-        return false;
+        return this.senderKeyStateStructure.senderMessageKeys.some(
+            key => key.iteration === iteration
+        );
     }
 
     addSenderMessageKey(senderMessageKey) {
-        const senderMessageKeyStructure = protobufs.SenderKeyStateStructure.create({
-            iteration: senderMessageKey.getIteration(),
-            seed: senderMessageKey.getSeed(),
-        });
-        this.senderKeyStateStructure.senderMessageKeys.push(senderMessageKeyStructure);
+        const iteration = senderMessageKey.getIteration();
+        const seed = senderMessageKey.getSeed();
+
+        if (iteration !== undefined && seed !== undefined) {
+            this.senderKeyStateStructure.senderMessageKeys.push({ iteration, seed });
+        }
 
         if (this.senderKeyStateStructure.senderMessageKeys.length > this.MAX_MESSAGE_KEYS) {
             this.senderKeyStateStructure.senderMessageKeys.shift();
@@ -106,17 +104,13 @@ class SenderKeyState {
     }
 
     removeSenderMessageKey(iteration) {
-        let result = null;
-
-        this.senderKeyStateStructure.senderMessageKeys = this.senderKeyStateStructure.senderMessageKeys.filter(
-            senderMessageKey => {
-                if (senderMessageKey.iteration === iteration) result = senderMessageKey;
-                return senderMessageKey.iteration !== iteration;
-            }
+        const index = this.senderKeyStateStructure.senderMessageKeys.findIndex(
+            key => key.iteration === iteration
         );
-
-        if (result != null) {
-            return new SenderMessageKey(result.iteration, result.seed);
+        if (index !== -1) {
+            const messageKey = this.senderKeyStateStructure.senderMessageKeys[index];
+            this.senderKeyStateStructure.senderMessageKeys.splice(index, 1);
+            return new SenderMessageKey(messageKey.iteration, messageKey.seed);
         }
         return null;
     }
