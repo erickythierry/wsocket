@@ -23,8 +23,8 @@ export declare const makeChatsSocket: (config: SocketConfig) => {
         lid: unknown;
     }[] | undefined>;
     fetchBlocklist: () => Promise<string[]>;
-    fetchStatus: (...jids: string[]) => Promise<import("..").USyncQueryResultList[] | undefined>;
-    fetchDisappearingDuration: (...jids: string[]) => Promise<import("..").USyncQueryResultList[] | undefined>;
+    fetchStatus: (...jids: string[]) => Promise<import("../WAUSync").USyncQueryResultList[] | undefined>;
+    fetchDisappearingDuration: (...jids: string[]) => Promise<import("../WAUSync").USyncQueryResultList[] | undefined>;
     updateProfilePicture: (jid: string, content: WAMediaUpload, dimensions?: {
         width: number;
         height: number;
@@ -57,22 +57,22 @@ export declare const makeChatsSocket: (config: SocketConfig) => {
         id: string;
         fromMe?: boolean;
     }[], star: boolean) => Promise<void>;
-    executeUSyncQuery: (usyncQuery: USyncQuery) => Promise<import("..").USyncQueryResult | undefined>;
+    executeUSyncQuery: (usyncQuery: USyncQuery) => Promise<import("../WAUSync").USyncQueryResult | undefined>;
     type: "md";
     ws: import("./Client").WebSocketClient;
-    ev: import("..").BaileysEventEmitter & {
-        process(handler: (events: Partial<import("..").BaileysEventMap>) => void | Promise<void>): () => void;
+    ev: import("../Types").BaileysEventEmitter & {
+        process(handler: (events: Partial<import("../Types").BaileysEventMap>) => void | Promise<void>): () => void;
         buffer(): void;
         createBufferedFunction<A extends any[], T>(work: (...args: A) => Promise<T>): (...args: A) => Promise<T>;
         flush(force?: boolean): boolean;
         isBuffering(): boolean;
     };
     authState: {
-        creds: import("..").AuthenticationCreds;
-        keys: import("..").SignalKeyStoreWithTransaction;
+        creds: import("../Types").AuthenticationCreds;
+        keys: import("../Types").SignalKeyStoreWithTransaction;
     };
-    signalRepository: import("..").SignalRepository;
-    user: import("..").Contact | undefined;
+    signalRepository: import("../Types").SignalRepository;
+    user: import("../Types").Contact | undefined;
     generateMessageTag: () => string;
     query: (node: BinaryNode, timeoutMs?: number) => Promise<any>;
     waitForMessage: <T>(msgId: string, timeoutMs?: number | undefined) => Promise<any>;
@@ -85,6 +85,6 @@ export declare const makeChatsSocket: (config: SocketConfig) => {
     uploadPreKeys: (count?: number) => Promise<void>;
     uploadPreKeysToServerIfRequired: () => Promise<void>;
     requestPairingCode: (phoneNumber: string, customPairingCode?: string) => Promise<string>;
-    waitForConnectionUpdate: (check: (u: Partial<import("..").ConnectionState>) => Promise<boolean | undefined>, timeoutMs?: number) => Promise<void>;
+    waitForConnectionUpdate: (check: (u: Partial<import("../Types").ConnectionState>) => Promise<boolean | undefined>, timeoutMs?: number) => Promise<void>;
     sendWAMBuffer: (wamBuffer: Buffer) => Promise<any>;
 };
