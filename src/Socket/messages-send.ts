@@ -759,17 +759,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 							]
 						}
 					]
-				} else if (message?.listMessage) {
-					// list message only support in private chat
-					bizNode.content = [
-						{
-							tag: 'list',
-							attrs: {
-								type: 'product_list',
-								v: '2'
-							}
-						}
-					]
 				}
 
 				;(stanza.content as BinaryNode[]).push(bizNode)

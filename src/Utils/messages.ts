@@ -618,7 +618,7 @@ export const generateWAMessageContent = async (
 
 	if ('mentions' in message && message.mentions?.length) {
 		const [messageType] = Object.keys(m);
-		m[messageType].contextInfo = m[messageType] || {};
+		m[messageType].contextInfo = m[messageType].contextInfo || {};
 		m[messageType].contextInfo.mentionedJid = message.mentions;
 	}
 
