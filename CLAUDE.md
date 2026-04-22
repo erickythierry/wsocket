@@ -24,6 +24,8 @@ yarn gen:protobuf           # regenerate WAProto/index.js + index.d.ts from WAPr
 
 The compiled output goes to `lib/` (gitignored). The package ships `lib/`, `WAProto/`, and `engine-requirements.js`.
 
+> **Note:** Running tests is not required when working in this repo. Use `yarn build:tsc` for type-checking and rely on static code analysis. The test suite requires a live WhatsApp connection for most cases and is not part of the normal development validation flow.
+
 ## Architecture
 
 ### Socket Composition Chain
