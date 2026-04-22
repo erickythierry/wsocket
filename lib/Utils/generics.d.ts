@@ -9,9 +9,9 @@ export declare const BufferJSON: {
     reviver: (_: any, value: any) => any;
 };
 export declare const getKeyAuthor: (key: proto.IMessageKey | undefined | null, meId?: string) => string;
-export declare const writeRandomPadMax16: (msg: Uint8Array) => Buffer<ArrayBuffer>;
-export declare const unpadRandomMax16: (e: Uint8Array | Buffer) => Uint8Array<ArrayBuffer>;
-export declare const encodeWAMessage: (message: proto.IMessage) => Buffer<ArrayBuffer>;
+export declare const writeRandomPadMax16: (msg: Uint8Array) => any;
+export declare const unpadRandomMax16: (e: Uint8Array | Buffer) => Uint8Array<any>;
+export declare const encodeWAMessage: (message: proto.IMessage) => any;
 export declare const generateRegistrationId: () => number;
 export declare const encodeBigEndian: (e: number, t?: number) => Uint8Array<ArrayBuffer>;
 export declare const toNumber: (t: Long | number | null | undefined) => number;
@@ -39,7 +39,7 @@ export declare const bindWaitForConnectionUpdate: (ev: BaileysEventEmitter) => (
  * Use to ensure your WA connection is always on the latest version
  */
 export declare const fetchLatestBaileysVersion: (options?: AxiosRequestConfig<{}>) => Promise<{
-    version: WAVersion;
+    version: any;
     isLatest: boolean;
     error?: undefined;
 } | {

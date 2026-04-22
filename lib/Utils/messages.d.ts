@@ -1,4 +1,3 @@
-import { type Transform } from 'stream';
 import { proto } from '../../WAProto';
 import { AnyMediaMessageContent, AnyMessageContent, MessageContentGenerationOptions, MessageGenerationOptions, MessageGenerationOptionsFromContent, MessageUserReceipt, WAMessage, WAMessageContent, WAProto } from '../Types';
 import { ILogger } from './logger';
@@ -9,7 +8,7 @@ import { MediaDownloadOptions } from './messages-media';
  * @returns the URL, eg. https://google.com
  */
 export declare const extractUrlFromText: (text: string) => string | undefined;
-export declare const generateLinkPreviewIfRequired: (text: string, getUrlInfo: MessageGenerationOptions["getUrlInfo"], logger: MessageGenerationOptions["logger"]) => Promise<import("../Types").WAUrlInfo | undefined>;
+export declare const generateLinkPreviewIfRequired: (text: string, getUrlInfo: MessageGenerationOptions["getUrlInfo"], logger: MessageGenerationOptions["logger"]) => Promise<import("..").WAUrlInfo | undefined>;
 export declare const prepareWAMessageMedia: (message: AnyMediaMessageContent, options: MessageContentGenerationOptions) => Promise<proto.Message>;
 export declare const prepareDisappearingMessageSettingContent: (ephemeralExpiration?: number) => proto.Message;
 /**
@@ -69,7 +68,7 @@ type DownloadMediaMessageContext = {
 /**
  * Downloads the given message. Throws an error if it's not a media message
  */
-export declare const downloadMediaMessage: <Type extends "buffer" | "stream">(message: WAMessage, type: Type, options: MediaDownloadOptions, ctx?: DownloadMediaMessageContext) => Promise<Type extends "buffer" ? Buffer<ArrayBufferLike> : Transform>;
+export declare const downloadMediaMessage: <Type extends "buffer" | "stream">(message: WAMessage, type: Type, options: MediaDownloadOptions, ctx?: DownloadMediaMessageContext) => Promise<Type extends "buffer" ? Buffer : Transform>;
 /** Checks whether the given message is a media message; if it is returns the inner content */
 export declare const assertMediaContent: (content: proto.IMessage | null | undefined) => proto.Message.IVideoMessage | proto.Message.IImageMessage | proto.Message.IAudioMessage | proto.Message.IDocumentMessage | proto.Message.IStickerMessage;
 export declare const convertlidDevice: (jid: string, lid: string | null | undefined, meid: string | undefined, melid: string | undefined) => string;

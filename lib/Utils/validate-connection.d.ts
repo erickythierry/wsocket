@@ -7,4 +7,4 @@ export declare const configureSuccessfulPairing: (stanza: BinaryNode, { advSecre
     creds: Partial<AuthenticationCreds>;
     reply: BinaryNode;
 };
-export declare const encodeSignedDeviceIdentity: (account: proto.IADVSignedDeviceIdentity, includeSignatureKey: boolean) => Uint8Array<ArrayBufferLike>;
+export declare const encodeSignedDeviceIdentity: (account: proto.IADVSignedDeviceIdentity, includeSignatureKey: boolean) => any;

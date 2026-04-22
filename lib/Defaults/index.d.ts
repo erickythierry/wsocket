@@ -5,15 +5,15 @@ export declare const DEFAULT_ORIGIN = "https://web.whatsapp.com";
 export declare const DEF_CALLBACK_PREFIX = "CB:";
 export declare const DEF_TAG_PREFIX = "TAG:";
 export declare const PHONE_CONNECTION_CB = "CB:Pong";
-export declare const WA_ADV_ACCOUNT_SIG_PREFIX: Buffer<ArrayBuffer>;
-export declare const WA_ADV_DEVICE_SIG_PREFIX: Buffer<ArrayBuffer>;
-export declare const WA_ADV_HOSTED_ACCOUNT_SIG_PREFIX: Buffer<ArrayBuffer>;
-export declare const WA_ADV_HOSTED_DEVICE_SIG_PREFIX: Buffer<ArrayBuffer>;
+export declare const WA_ADV_ACCOUNT_SIG_PREFIX: any;
+export declare const WA_ADV_DEVICE_SIG_PREFIX: any;
+export declare const WA_ADV_HOSTED_ACCOUNT_SIG_PREFIX: any;
+export declare const WA_ADV_HOSTED_DEVICE_SIG_PREFIX: any;
 export declare const WA_DEFAULT_EPHEMERAL: number;
 export declare const NOISE_MODE = "Noise_XX_25519_AESGCM_SHA256\0\0\0\0";
 export declare const DICT_VERSION = 3;
-export declare const KEY_BUNDLE_TYPE: Buffer<ArrayBuffer>;
-export declare const NOISE_WA_HEADER: Buffer<ArrayBuffer>;
+export declare const KEY_BUNDLE_TYPE: any;
+export declare const NOISE_WA_HEADER: any;
 /** from: https://stackoverflow.com/questions/3809401/what-is-a-good-regular-expression-to-match-a-url */
 export declare const URL_REGEX: RegExp;
 export declare const WA_CERT_DETAILS: {

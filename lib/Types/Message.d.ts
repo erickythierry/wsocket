@@ -95,8 +95,10 @@ type Listable = {
     sections?: proto.Message.ListMessage.ISection[];
     /** Title of a List Message only */
     title?: string;
-    /** Text of the bnutton on the list (required) */
+    /** Text of the button on the list (required) */
     buttonText?: string;
+    /** Footer text of the list message */
+    footer?: string;
 };
 export type PollMessageOptions = {
     name: string;

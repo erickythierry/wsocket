@@ -11,19 +11,19 @@ import { WebSocketClient } from './Client';
 export declare const makeSocket: (config: SocketConfig) => {
     type: "md";
     ws: WebSocketClient;
-    ev: import("../Types").BaileysEventEmitter & {
-        process(handler: (events: Partial<import("../Types").BaileysEventMap>) => void | Promise<void>): () => void;
+    ev: import("..").BaileysEventEmitter & {
+        process(handler: (events: Partial<import("..").BaileysEventMap>) => void | Promise<void>): () => void;
         buffer(): void;
         createBufferedFunction<A extends any[], T>(work: (...args: A) => Promise<T>): (...args: A) => Promise<T>;
         flush(force?: boolean): boolean;
         isBuffering(): boolean;
     };
     authState: {
-        creds: import("../Types").AuthenticationCreds;
-        keys: import("../Types").SignalKeyStoreWithTransaction;
+        creds: import("..").AuthenticationCreds;
+        keys: import("..").SignalKeyStoreWithTransaction;
     };
-    signalRepository: import("../Types").SignalRepository;
-    readonly user: import("../Types").Contact | undefined;
+    signalRepository: import("..").SignalRepository;
+    readonly user: import("..").Contact | undefined;
     generateMessageTag: () => string;
     query: (node: BinaryNode, timeoutMs?: number) => Promise<any>;
     waitForMessage: <T>(msgId: string, timeoutMs?: number | undefined) => Promise<any>;
@@ -37,6 +37,6 @@ export declare const makeSocket: (config: SocketConfig) => {
     uploadPreKeysToServerIfRequired: () => Promise<void>;
     requestPairingCode: (phoneNumber: string, customPairingCode?: string) => Promise<string>;
     /** Waits for the connection to WA to reach a state */
-    waitForConnectionUpdate: (check: (u: Partial<import("../Types").ConnectionState>) => Promise<boolean | undefined>, timeoutMs?: number) => Promise<void>;
+    waitForConnectionUpdate: (check: (u: Partial<import("..").ConnectionState>) => Promise<boolean | undefined>, timeoutMs?: number) => Promise<void>;
     sendWAMBuffer: (wamBuffer: Buffer) => Promise<any>;
 };

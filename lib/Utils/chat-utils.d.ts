@@ -13,7 +13,7 @@ export declare const encodeSyncdPatch: ({ type, index, syncAction, apiVersion, o
     state: LTHashState;
 }>;
 export declare const decodeSyncdMutations: (msgMutations: (proto.ISyncdMutation | proto.ISyncdRecord)[], initialState: LTHashState, getAppStateSyncKey: FetchAppStateSyncKey, onMutation: (mutation: ChatMutation) => void, validateMacs: boolean) => Promise<{
-    hash: Buffer<any>;
+    hash: any;
     indexValueMap: {
         [indexMacBase64: string]: {
             valueMac: Uint8Array | Buffer;
@@ -21,7 +21,7 @@ export declare const decodeSyncdMutations: (msgMutations: (proto.ISyncdMutation 
     };
 }>;
 export declare const decodeSyncdPatch: (msg: proto.ISyncdPatch, name: WAPatchName, initialState: LTHashState, getAppStateSyncKey: FetchAppStateSyncKey, onMutation: (mutation: ChatMutation) => void, validateMacs: boolean) => Promise<{
-    hash: Buffer<any>;
+    hash: any;
     indexValueMap: {
         [indexMacBase64: string]: {
             valueMac: Uint8Array | Buffer;
@@ -55,7 +55,7 @@ export declare const extractSyncdPatches: (result: BinaryNode, options: AxiosReq
         snapshot?: proto.ISyncdSnapshot;
     };
 }>;
-export declare const downloadExternalBlob: (blob: proto.IExternalBlobReference, options: AxiosRequestConfig<{}>) => Promise<Buffer<ArrayBuffer>>;
+export declare const downloadExternalBlob: (blob: proto.IExternalBlobReference, options: AxiosRequestConfig<{}>) => Promise<any>;
 export declare const downloadExternalPatch: (blob: proto.IExternalBlobReference, options: AxiosRequestConfig<{}>) => Promise<proto.SyncdMutations>;
 export declare const decodeSyncdSnapshot: (name: WAPatchName, snapshot: proto.ISyncdSnapshot, getAppStateSyncKey: FetchAppStateSyncKey, minimumVersionNumber: number | undefined, validateMacs?: boolean) => Promise<{
     state: LTHashState;
