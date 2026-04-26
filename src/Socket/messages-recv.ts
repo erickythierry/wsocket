@@ -410,21 +410,36 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				}
 
 				break
-			case 'server_sync':
-				const updates = getBinaryNodeChildren(node, 'collection')
-				if (updates.length > 0) {
-					const collectionNames = updates.map(item => item.attrs.name as WAPatchName)
-					try {
-						await resyncAppState(collectionNames, false)
-					} catch (error: any) {
-						logger.info(
-							{ error: error?.message, collections: collectionNames },
-							'failed to server_sync state'
-						)
-					}
+		case 'server_sync':
+			const updates = getBinaryNodeChildren(node, 'collection')
+			if (updates.length > 0) {
+				// Bot multi-tenant não precisa de blocklist local; ignorar para evitar
+				// loops de "rate-overlimit" em contas com muitos bloqueios acumulados.
+				const SKIP_COLLECTIONS: ReadonlySet<WAPatchName> = new Set(['critical_unblock_low'])
+
+				const collectionNames = updates
+					.map(item => item.attrs.name as WAPatchName)
+					.filter(name => !SKIP_COLLECTIONS.has(name))
+
+				if (collectionNames.length === 0) {
+					logger.debug(
+						{ skipped: updates.map(u => u.attrs.name) },
+						'server_sync ignored (all collections skipped)'
+					)
+					break
 				}
 
-				break
+				try {
+					await resyncAppState(collectionNames, false)
+				} catch (error: any) {
+					logger.info(
+						{ error: error?.message, collections: collectionNames },
+						'failed to server_sync state'
+					)
+				}
+			}
+
+			break
 			case 'picture':
 				const setPicture = getBinaryNodeChild(node, 'set')
 				const delPicture = getBinaryNodeChild(node, 'delete')

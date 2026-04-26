@@ -460,6 +460,10 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 	const resyncAppState = ev.createBufferedFunction(
 		async (collections: readonly WAPatchName[], isInitialSync: boolean) => {
+			const filtered = collections.filter(c => c !== 'critical_unblock_low')
+			if (filtered.length === 0) return
+			collections = filtered
+
 			// we use this to determine which events to fire
 			// otherwise when we resync from scratch -- all notifications will fire
 			const initialVersionMap: { [T in WAPatchName]?: number } = {}
