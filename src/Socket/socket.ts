@@ -76,7 +76,7 @@ export const makeSocket = (config: SocketConfig) => {
 		throw new Boom('Mobile API is not supported anymore', { statusCode: DisconnectReason.loggedOut })
 	}
 
-	if (url.protocol === 'wss' && authState?.creds?.routingInfo) {
+	if ((url.protocol === 'wss' || url.protocol === 'ws') && authState?.creds?.routingInfo) {
 		url.searchParams.append('ED', authState.creds.routingInfo.toString('base64url'))
 	}
 
