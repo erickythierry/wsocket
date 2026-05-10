@@ -5264,7 +5264,7 @@ levn@~0.3.0:
 
 "libsignal@github:erickythierry/libsignal-node-no-annoying-logs":
   version "2.1.0"
-  resolved "https://codeload.github.com/erickythierry/libsignal-node-no-annoying-logs/tar.gz/ef76f0dba58cb4446e0ae4a6440c65c7737379f1"
+  resolved "https://codeload.github.com/erickythierry/libsignal-node-no-annoying-logs/tar.gz/0de7cd5fb055a9b2e715850b55a40c0f6ac8fb7d"
   dependencies:
     curve25519-js "^0.0.4"
     protobufjs "6.8.8"

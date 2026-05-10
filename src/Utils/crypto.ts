@@ -10,8 +10,8 @@ import { KeyPair } from '../Types'
 //const { subtle } = globalThis.crypto
 
 /** prefix version byte to the pub keys, required for some curve crypto functions */
-export const generateSignalPubKey = (pubKey: Uint8Array | Buffer) =>
-	pubKey.length === 33 ? pubKey : Buffer.concat([KEY_BUNDLE_TYPE, pubKey])
+export const generateSignalPubKey = (pubKey: Uint8Array | Buffer): Buffer =>
+	pubKey.length === 33 ? Buffer.from(pubKey) : Buffer.concat([KEY_BUNDLE_TYPE, pubKey])
 
 export const Curve = {
 	generateKeyPair: (): KeyPair => {
@@ -23,13 +23,14 @@ export const Curve = {
 		}
 	},
 	sharedKey: (privateKey: Uint8Array, publicKey: Uint8Array) => {
-		const shared = libsignal.curve.calculateAgreement(generateSignalPubKey(publicKey), privateKey)
+		const shared = libsignal.curve.calculateAgreement(generateSignalPubKey(publicKey), Buffer.from(privateKey))
 		return Buffer.from(shared)
 	},
-	sign: (privateKey: Uint8Array, buf: Uint8Array) => libsignal.curve.calculateSignature(privateKey, buf),
+	sign: (privateKey: Uint8Array, buf: Uint8Array) =>
+		libsignal.curve.calculateSignature(Buffer.from(privateKey), Buffer.from(buf)),
 	verify: (pubKey: Uint8Array, message: Uint8Array, signature: Uint8Array) => {
 		try {
-			libsignal.curve.verifySignature(generateSignalPubKey(pubKey), message, signature)
+			libsignal.curve.verifySignature(generateSignalPubKey(pubKey), Buffer.from(message), Buffer.from(signature))
 			return true
 		} catch (error) {
 			return false

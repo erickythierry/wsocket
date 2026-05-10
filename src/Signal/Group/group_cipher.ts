@@ -109,7 +109,7 @@ export class GroupCipher {
 
 	private async getPlainText(iv: Uint8Array, key: Uint8Array, ciphertext: Uint8Array): Promise<Uint8Array> {
 		try {
-			return decrypt(key, ciphertext, iv)
+			return decrypt(Buffer.from(key), Buffer.from(ciphertext), Buffer.from(iv))
 		} catch (e) {
 			throw new Error('InvalidMessageException')
 		}
@@ -121,9 +121,9 @@ export class GroupCipher {
 		plaintext: Uint8Array | string
 	): Promise<Buffer> {
 		try {
-			const ivBuffer = typeof iv === 'string' ? Buffer.from(iv, 'base64') : iv
-			const keyBuffer = typeof key === 'string' ? Buffer.from(key, 'base64') : key
-			const plaintextBuffer = typeof plaintext === 'string' ? Buffer.from(plaintext) : plaintext
+			const ivBuffer = typeof iv === 'string' ? Buffer.from(iv, 'base64') : Buffer.from(iv)
+			const keyBuffer = typeof key === 'string' ? Buffer.from(key, 'base64') : Buffer.from(key)
+			const plaintextBuffer = typeof plaintext === 'string' ? Buffer.from(plaintext) : Buffer.from(plaintext)
 			return encrypt(keyBuffer, plaintextBuffer, ivBuffer)
 		} catch (e) {
 			throw new Error('InvalidMessageException')

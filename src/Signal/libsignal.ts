@@ -42,14 +42,15 @@ export function makeLibSignalRepository(auth: SignalAuthState): SignalRepository
 		},
 		async decryptMessage({ jid, type, ciphertext }) {
 			const addr = jidToSignalProtocolAddress(jid)
-			const session = new libsignal.SessionCipher(storage, addr)
+			const session = new libsignal.SessionCipher(storage as any, addr)
 			let result: Buffer
+			const ciphertextBuf = Buffer.from(ciphertext)
 			switch (type) {
 				case 'pkmsg':
-					result = await session.decryptPreKeyWhisperMessage(ciphertext)
+					result = await session.decryptPreKeyWhisperMessage(ciphertextBuf)
 					break
 				case 'msg':
-					result = await session.decryptWhisperMessage(ciphertext)
+					result = await session.decryptWhisperMessage(ciphertextBuf)
 					break
 				default:
 					throw new Error(`Unknown message type: ${type}`)
@@ -59,11 +60,11 @@ export function makeLibSignalRepository(auth: SignalAuthState): SignalRepository
 		},
 		async encryptMessage({ jid, data }) {
 			const addr = jidToSignalProtocolAddress(jid)
-			const cipher = new libsignal.SessionCipher(storage, addr)
+			const cipher = new libsignal.SessionCipher(storage as any, addr)
 
-			const { type: sigType, body } = await cipher.encrypt(data)
+			const { type: sigType, body } = await cipher.encrypt(Buffer.from(data))
 			const type = sigType === 3 ? 'pkmsg' : 'msg'
-			return { type, ciphertext: Buffer.from(body, 'binary') }
+			return { type, ciphertext: Buffer.from(body) }
 		},
 		async encryptGroupMessage({ group, meId, data }) {
 			const senderName = jidToSignalSenderKeyName(group, meId)
@@ -85,8 +86,19 @@ export function makeLibSignalRepository(auth: SignalAuthState): SignalRepository
 			}
 		},
 		async injectE2ESession({ jid, session }) {
-			const cipher = new libsignal.SessionBuilder(storage, jidToSignalProtocolAddress(jid))
-			await cipher.initOutgoing(session)
+			const cipher = new libsignal.SessionBuilder(storage as any, jidToSignalProtocolAddress(jid))
+			await cipher.initOutgoing({
+				...session,
+				identityKey: Buffer.from(session.identityKey),
+				signedPreKey: {
+					...session.signedPreKey,
+					publicKey: Buffer.from(session.signedPreKey.publicKey),
+					signature: Buffer.from(session.signedPreKey.signature)
+				},
+				preKey: session.preKey
+					? { ...session.preKey, publicKey: Buffer.from(session.preKey.publicKey) }
+					: undefined
+			})
 		},
 		jidToSignalProtocolAddress(jid) {
 			return jidToSignalProtocolAddress(jid).toString()
@@ -111,7 +123,7 @@ function signalStorage({ creds, keys }: SignalAuthState): SenderKeyStore & Recor
 				return libsignal.SessionRecord.deserialize(sess)
 			}
 		},
-		storeSession: async (id: string, session: libsignal.SessionRecord) => {
+		storeSession: async (id: string, session: InstanceType<typeof libsignal.SessionRecord>) => {
 			await keys.set({ session: { [id]: session.serialize() } })
 		},
 		isTrustedIdentity: () => {
