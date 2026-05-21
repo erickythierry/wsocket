@@ -4,7 +4,7 @@ import { AnyMessageContent, MediaConnInfo, MessageReceiptType, MessageRelayOptio
 import { BinaryNode, JidWithDevice } from '../WABinary';
 import { USyncQuery } from '../WAUSync';
 export declare const makeMessagesSocket: (config: SocketConfig) => {
-    getPrivacyTokens: (jids: string[]) => Promise<any>;
+    getPrivacyTokens: (jids: string[], timestamp?: number) => Promise<any>;
     assertSessions: (jids: string[], force: boolean, lids?: string) => Promise<boolean>;
     relayMessage: (jid: string, message: proto.IMessage, { messageId: msgId, participant, additionalAttributes, additionalNodes, useUserDevicesCache, useCachedGroupMetadata, statusJidList, isretry }: MessageRelayOptions) => Promise<string>;
     sendReceipt: (jid: string, participant: string | undefined, messageIds: string[], type: MessageReceiptType) => Promise<void>;

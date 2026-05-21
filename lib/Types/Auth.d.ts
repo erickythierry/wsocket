@@ -69,6 +69,11 @@ export type SignalDataTypeMap = {
     };
     'app-state-sync-key': proto.Message.IAppStateSyncKeyData;
     'app-state-sync-version': LTHashState;
+    'contacts-tc-token': {
+        token: Buffer;
+        timestamp?: string;
+        senderTimestamp?: number;
+    };
 };
 export type SignalDataSet = {
     [T in keyof SignalDataTypeMap]?: {

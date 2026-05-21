@@ -37,6 +37,7 @@ import {
 	newLTHashState,
 	processSyncAction
 } from '../Utils'
+import { buildTcTokenFromJid } from '../Utils/tc-token-utils'
 import { makeMutex } from '../Utils/make-mutex'
 import processMessage from '../Utils/process-message'
 import {
@@ -624,6 +625,8 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	 */
 	const profilePictureUrl = async (jid: string, type: 'preview' | 'image' = 'preview', timeoutMs?: number) => {
 		jid = jidNormalizedUser(jid)
+		const content: BinaryNode[] = [{ tag: 'picture', attrs: { type, query: 'url' } }]
+		await buildTcTokenFromJid({ keys: authState.keys, jid, baseContent: content })
 		const result = await query(
 			{
 				tag: 'iq',
@@ -633,7 +636,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 					type: 'get',
 					xmlns: 'w:profile:picture'
 				},
-				content: [{ tag: 'picture', attrs: { type, query: 'url' } }]
+				content
 			},
 			timeoutMs
 		)
@@ -680,26 +683,25 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 	/**
 	 * @param toJid the jid to subscribe to
-	 * @param tcToken token for subscription, use if present
+	 * @param tcToken optional override — when omitted, a stored tctoken is attached automatically
 	 */
-	const presenceSubscribe = (toJid: string, tcToken?: Buffer) =>
-		sendNode({
+	const presenceSubscribe = async (toJid: string, tcToken?: Buffer) => {
+		let content: BinaryNode[] | undefined
+		if (tcToken) {
+			content = [{ tag: 'tctoken', attrs: {}, content: tcToken }]
+		} else {
+			content = await buildTcTokenFromJid({ keys: authState.keys, jid: toJid })
+		}
+		return sendNode({
 			tag: 'presence',
 			attrs: {
 				to: toJid,
 				id: generateMessageTag(),
 				type: 'subscribe'
 			},
-			content: tcToken
-				? [
-						{
-							tag: 'tctoken',
-							attrs: {},
-							content: tcToken
-						}
-					]
-				: undefined
+			content
 		})
+	}
 
 
 

@@ -3,7 +3,7 @@ import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import Long = require('long')
 import { proto } from '../../WAProto'
-import { DEFAULT_CACHE_TTLS, KEY_BUNDLE_TYPE, MIN_PREKEY_COUNT } from '../Defaults'
+import { DEFAULT_CACHE_TTLS, KEY_BUNDLE_TYPE, MIN_PREKEY_COUNT, SERVER_ERROR_CODES } from '../Defaults'
 import {
 	MessageReceiptType,
 	MessageRelayOptions,
@@ -373,6 +373,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		switch (nodeType) {
 			case 'privacy_token':
 				const tokenList = getBinaryNodeChildren(child, 'token')
+				const issueTimestamp = unixTimestampSeconds()
 				for (const { attrs, content } of tokenList) {
 					const jid = attrs.jid
 					ev.emit('chats.update', [
@@ -381,6 +382,26 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 							tcToken: content as Buffer
 						}
 					])
+
+					if (attrs.type === 'trusted_contact' && content instanceof Buffer) {
+						const storageJid = jidNormalizedUser(jid)
+						const existing = await authState.keys.get('contacts-tc-token', [storageJid])
+						const existingEntry = existing[storageJid]
+						const incomingTs = attrs.t ? Number(attrs.t) : 0
+						const existingTs = existingEntry?.timestamp ? Number(existingEntry.timestamp) : 0
+						if (incomingTs && (existingTs === 0 || incomingTs >= existingTs)) {
+							await authState.keys.set({
+								'contacts-tc-token': {
+									[storageJid]: {
+										...existingEntry,
+										token: content,
+										timestamp: attrs.t,
+										senderTimestamp: existingEntry?.senderTimestamp ?? issueTimestamp
+									}
+								}
+							})
+						}
+					}
 
 					logger.debug({ jid }, 'got privacy token update')
 				}
@@ -1012,6 +1033,9 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		await sendMessageAck(node)
 	}
 
+	/** tracks message ids already retried after error 463 — prevents retry loops */
+	const tcTokenRetriedMsgIds = new Set<string>()
+
 	const handleBadAck = async ({ attrs }: BinaryNode) => {
 		if (!attrs.from || !attrs.id) {
 			logger.warn({ attrs }, 'ignoring bad ack with missing id/from')
@@ -1037,7 +1061,33 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		// error in acknowledgement,
 		// device could not display the message
 		if (attrs.error) {
-			logger.warn({ attrs }, 'received error in ack')
+			if (attrs.error === SERVER_ERROR_CODES.MissingTcToken) {
+				// Single retry: the original sendNode triggered a tctoken issuance.
+				// After a brief delay the server should have pushed a privacy_token
+				// notification, making the re-send succeed.
+				const msgId = attrs.id
+				const jid = jidNormalizedUser(attrs.from)
+				if (msgId && jid && !tcTokenRetriedMsgIds.has(msgId)) {
+					tcTokenRetriedMsgIds.add(msgId)
+					setTimeout(() => tcTokenRetriedMsgIds.delete(msgId), 60_000)
+					try {
+						const msg = await getMessage(key)
+						if (msg) {
+							await delay(1500)
+							await relayMessage(jid, msg, { messageId: msgId, useUserDevicesCache: true })
+							logger.info({ msgId, from: jid }, 'error 463 retry succeeded')
+							return
+						}
+						logger.warn({ msgId, from: jid }, 'error 463: original message not found, cannot retry')
+					} catch (err) {
+						logger.warn({ msgId, from: jid, err }, 'error 463 retry failed')
+					}
+				} else if (msgId && tcTokenRetriedMsgIds.has(msgId)) {
+					logger.warn({ msgId, from: jid }, 'error 463: already retried, giving up')
+				}
+			} else {
+				logger.warn({ attrs }, 'received error in ack')
+			}
 			ev.emit('messages.update', [
 				{
 					key,

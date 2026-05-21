@@ -35,6 +35,7 @@ import {
 	encodeNewsletterMessage
 } from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
+import { isTcTokenExpired, shouldSendNewTcToken, storeTcTokensFromIqResult } from '../Utils/tc-token-utils'
 import {
 	areJidsSameUser,
 	BinaryNode,
@@ -698,6 +699,32 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				logger.debug({ jid }, 'adding business node')
 			}
 
+			const isPeerMessage = additionalAttributes?.['category'] === 'peer'
+			const is1on1Send = !isGroup && !isStatus && !isNewsletter && !isretry && !isPeerMessage
+			const tcTokenJid = is1on1Send ? jidNormalizedUser(destinationJid) : undefined
+			const tcTokenEntry = tcTokenJid
+				? (await authState.keys.get('contacts-tc-token', [tcTokenJid]))[tcTokenJid]
+				: undefined
+			let tcTokenBuffer: Buffer | undefined = tcTokenEntry?.token
+			if (tcTokenBuffer?.length && isTcTokenExpired(tcTokenEntry?.timestamp)) {
+				logger.debug({ jid: destinationJid, timestamp: tcTokenEntry?.timestamp }, 'tctoken expired, clearing')
+				tcTokenBuffer = undefined
+				const cleared =
+					tcTokenEntry?.senderTimestamp !== undefined
+						? { token: Buffer.alloc(0), senderTimestamp: tcTokenEntry.senderTimestamp }
+						: null
+				try {
+					await authState.keys.set({ 'contacts-tc-token': { [tcTokenJid!]: cleared } })
+				} catch {}
+			}
+			if (tcTokenBuffer?.length) {
+				;(stanza.content as BinaryNode[]).push({
+					tag: 'tctoken',
+					attrs: {},
+					content: tcTokenBuffer
+				})
+			}
+
 			if (additionalNodes && additionalNodes.length > 0) {
 				;(stanza.content as BinaryNode[]).push(...additionalNodes)
 			}
@@ -746,6 +773,31 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			logger.debug({ msgId }, `sending message to ${participants.length} devices`)
 
 			await sendNode(stanza)
+
+			if (is1on1Send && tcTokenJid && shouldSendNewTcToken(tcTokenEntry?.senderTimestamp)) {
+				const issueTimestamp = unixTimestampSeconds()
+				getPrivacyTokens([tcTokenJid], issueTimestamp)
+					.then(async result => {
+						await storeTcTokensFromIqResult({
+							result,
+							fallbackJid: tcTokenJid,
+							keys: authState.keys
+						})
+						const currentData = await authState.keys.get('contacts-tc-token', [tcTokenJid])
+						const currentEntry = currentData[tcTokenJid]
+						await authState.keys.set({
+							'contacts-tc-token': {
+								[tcTokenJid]: {
+									...(currentEntry ?? { token: Buffer.alloc(0) }),
+									senderTimestamp: issueTimestamp
+								}
+							}
+						})
+					})
+					.catch(err => {
+						logger.debug({ jid: destinationJid, err: err?.message }, 'fire-and-forget tctoken issuance failed')
+					})
+			}
 		})
 
 		return msgId
@@ -823,8 +875,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 	}
 
-	const getPrivacyTokens = async (jids: string[]) => {
-		const t = unixTimestampSeconds().toString()
+	const getPrivacyTokens = async (jids: string[], timestamp?: number) => {
+		const t = (timestamp ?? unixTimestampSeconds()).toString()
 		const result = await query({
 			tag: 'iq',
 			attrs: {

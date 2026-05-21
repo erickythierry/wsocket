@@ -1,6 +1,10 @@
 import { proto } from '../../WAProto';
 import type { MediaType, SocketConfig } from '../Types';
 export declare const UNAUTHORIZED_CODES: number[];
+export declare const SERVER_ERROR_CODES: {
+    /** server rejected stanza because no tctoken was attached for this contact */
+    readonly MissingTcToken: "463";
+};
 export declare const DEFAULT_ORIGIN = "https://web.whatsapp.com";
 export declare const DEF_CALLBACK_PREFIX = "CB:";
 export declare const DEF_TAG_PREFIX = "TAG:";
